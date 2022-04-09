@@ -72,6 +72,10 @@ class Preprocess:
         self.__save_data(new_data_url)
         print('done.')
 
+    def data(self):
+        return self.__data
+
+
 
 if __name__ == '__main__':
     # preprocessor = Preprocess()
