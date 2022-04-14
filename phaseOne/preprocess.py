@@ -15,8 +15,8 @@ class Preprocess(setup.Setup):
             print('|', end='')
             for idx in data.keys():
                 self._data[int(idx)] = {'title': data[f'{idx}']['title'],
-                                         'url': data[f'{idx}']['url'],
-                                         'content': data[f'{idx}']['content']}
+                                        'url': data[f'{idx}']['url'],
+                                        'content': data[f'{idx}']['content']}
 
                 if int(idx) % 200 == 0:
                     print('=', end='')
@@ -71,7 +71,7 @@ class Preprocess(setup.Setup):
 
 if __name__ == '__main__':
     preprocessor = Preprocess()
-    preprocessor.start('../data/IR_data_news_12k.json', '../data/main_data.json')
+    # preprocessor.start('../data/IR_data_news_12k.json', '../data/main_data.json')
 
     # with open('../data/main_data.json', 'r') as f:
     #     data = json.load(f)
