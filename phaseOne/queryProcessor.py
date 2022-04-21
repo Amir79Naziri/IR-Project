@@ -1,5 +1,6 @@
 from phaseOne import setup
 import json
+from math import log2
 
 
 class QueryProcessor(setup.Setup):
@@ -13,7 +14,6 @@ class QueryProcessor(setup.Setup):
             self._dictionary = json.load(f)
         with open(data_url, 'r') as f:
             self._data = json.load(f)
-            print(len(self._data))
 
     def __queryPreprocessor(self, query):
         query = self._normalize(query)
@@ -31,6 +31,7 @@ class QueryProcessor(setup.Setup):
                 if word == '"':
                     exact_seqs.append(exact_words)
                     exact_words = []
+                    has_seen_quote = False
                 else:
                     exact_words.append(self._stem(word))
             else:
@@ -47,9 +48,9 @@ class QueryProcessor(setup.Setup):
 
         return match_words, not_words, exact_seqs
 
-    def __positionalSearch(self, exact_words):
+    def __positionalSearch(self, exact_words, docs):
         docsPosition = {}
-        docs = set()
+
         threshold = len(exact_words)
         for word in exact_words:
             if word in self._dictionary:
@@ -63,7 +64,13 @@ class QueryProcessor(setup.Setup):
                                     if pos1 - prev_positions[pos2_idx][-1] == 1:
                                         docsPosition[doc_id][pos2_idx].append(pos1)
                                         if len(docsPosition[doc_id][pos2_idx]) == threshold:
-                                            docs.add(doc_id)
+                                            exact_seq = ' '.join(exact_words)
+                                            if doc_id in docs:
+                                                if exact_seq in docs[doc_id]['exact_words']:
+                                                    docs[doc_id]['exact_words'][exact_seq] += 1
+                                                else:
+                                                    docs[doc_id]['exact_words'][exact_seq] = 1
+
                                         break
 
                 else:
@@ -72,57 +79,97 @@ class QueryProcessor(setup.Setup):
                     for doc_id in postings:
                         docsPosition[doc_id] = [[pos] for pos in postings[doc_id]['positions']]
             else:
-                return {}
-
-        return docs
+                return
 
     def __querySearch(self, match_words, not_words, exact_seqs):
-        # not_docs = set(self._data.keys())
+
         docs = {}
-
-        # for word in not_words:
-        #     if word in self._dictionary:
-        #         for doc_id in self._dictionary[word]['postings']:
-        #             not_docs.remove(doc_id)
-
-        for word in match_words:
-            if word in self._dictionary:
-                for doc in self._dictionary[word]['postings']:
-                    if doc in docs:
-                        docs[doc] += 1
-                    else:
-                        docs[doc] = 0
+        for doc_id in self._data:
+            docs[doc_id] = {'exact_words': {}, 'match_words': {}}
 
         for word in not_words:
             if word in self._dictionary:
-                for doc in self._dictionary[word]['postings']:
-                    if doc in docs:
-                        docs.pop(doc)
+                for doc_id in self._dictionary[word]['postings']:
+                    docs.pop(doc_id)
 
-        exact_docs = set()
+        for word in match_words:
+            if word in self._dictionary:
+                for doc_id in self._dictionary[word]['postings']:
+                    if doc_id in docs:
+                        if word in docs[doc_id]['match_words']:
+                            docs[doc_id]['match_words'][word] += self._dictionary[word][doc_id]['count']
+                        else:
+                            docs[doc_id]['match_words'][word] = \
+                                self._dictionary[word]['postings'][doc_id]['count']
+
+        for doc_id in docs.copy():
+            if len(docs[doc_id]['match_words']) == 0:
+                docs.pop(doc_id)
+
         for exact_words in exact_seqs:
-            exact_docs.update(self.__positionalSearch(exact_words))
+            self.__positionalSearch(exact_words, docs)
 
-        final_docs = []
-        for doc_id in sorted(docs, key=lambda x: docs[x], reverse=True):
-            if doc_id in exact_docs:
-                final_docs.append(doc_id)
+        if exact_seqs:
+            for doc_id in docs.copy():
+                if len(docs[doc_id]['exact_words']) != len(exact_seqs):
+                    docs.pop(doc_id)
 
-        return final_docs
+        return docs
+
+    def __rank(self, docs, match_words, exact_seqs):
+        max_dict = {}
+
+        for word in match_words:
+            if word in self._dictionary:
+                max_dict[word] = self._dictionary[word]['count']
+
+        for exact_words in exact_seqs:
+            min_count = 0
+            add = True
+            for word in exact_words:
+                if word in self._dictionary:
+                    min_count = min(min_count, self._dictionary[word]['count'])
+                else:
+                    add = False
+                    break
+            if add:
+                max_dict[' '.join(exact_words)] = min_count
+
+        for doc_id in docs:
+            rank_val = 0
+            for exact_words in exact_seqs:
+                if ' '.join(exact_words) in max_dict:
+                    rank_val += log2((docs[doc_id]['exact_words'].get(' '.join(exact_words), 0) + 0.01)
+                                     / (max_dict[' '.join(exact_words)] + 0.01))
+
+            for word in match_words:
+                if word in max_dict:
+                    rank_val += log2((docs[doc_id]['match_words'].get(word, 0) + 0.01)
+                                     / (max_dict[word] + 0.01))
+
+            docs[doc_id]['rank'] = rank_val
+        # print(docs)
+        return sorted(docs, key=lambda x: docs[x]['rank'], reverse=True)
 
     def __show_result(self, docs):
+        items = 0
         for doc_id in docs:
             doc = self._data[doc_id]
+            # print('ID', doc_id)
             print('Title: ', doc['title'])
             print('URL: ', doc['url'])
-            print('Content: ', doc['content'])
-            print('-------------------------------------------------------------')
+            # print('Content: ', doc['content'])
+            print()
+            items += 1
+            if items == 5:
+                break
 
     def search(self, query):
         match_words, not_words, exact_seqs = self.__queryPreprocessor(query)
-        print(match_words, not_words, exact_seqs)
+        # print(match_words, not_words, exact_seqs)
         docs = self.__querySearch(match_words, not_words, exact_seqs)
-        self.__show_result(docs)
+        sorted_docs = self.__rank(docs, match_words, exact_seqs)
+        self.__show_result(sorted_docs)
 
 
 def main():
@@ -134,7 +181,6 @@ def main():
             break
         else:
             query_processor.search(query)
-            print()
 
 
 if __name__ == '__main__':
