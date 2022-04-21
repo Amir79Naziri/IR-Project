@@ -71,13 +71,4 @@ class Preprocess(setup.Setup):
 
 if __name__ == '__main__':
     preprocessor = Preprocess()
-    # preprocessor.start('../data/IR_data_news_12k.json', '../data/main_data.json')
-
-    # with open('../data/main_data.json', 'r') as f:
-    #     data = json.load(f)
-    #     print(data["0"]["content"])
-    #
-    # with open('../data/IR_data_news_12k.json', 'r') as f:
-    #     data = json.load(f)
-    #     print(data["0"]["content"])
-    pass
+    preprocessor.start('../data/IR_data_news_12k.json', '../data/main_data.json')

@@ -13,6 +13,7 @@ class QueryProcessor(setup.Setup):
             self._dictionary = json.load(f)
         with open(data_url, 'r') as f:
             self._data = json.load(f)
+            print(len(self._data))
 
     def __queryPreprocessor(self, query):
         query = self._normalize(query)
@@ -27,7 +28,7 @@ class QueryProcessor(setup.Setup):
         for word in query:
 
             if has_seen_quote:
-                if word == '«' or word == '»':
+                if word == '"':
                     exact_seqs.append(exact_words)
                     exact_words = []
                 else:
@@ -39,7 +40,7 @@ class QueryProcessor(setup.Setup):
                 else:
                     if word == '!':
                         has_seen_not = True
-                    elif word == '«' or word == '»':
+                    elif word == '"':
                         has_seen_quote = True
                     else:
                         match_words.append(self._stem(word))
@@ -125,8 +126,7 @@ class QueryProcessor(setup.Setup):
 
 
 def main():
-    query_processor = QueryProcessor('../data/dictionary.json', '../data/IR_data_news_12k.json')
-    # query_processor.search('تحریم های !آمریکا "علیه ایران"')
+    query_processor = QueryProcessor('../data/dictionary.json', '../data/main_data.json')
 
     while True:
         query = input('search: ')

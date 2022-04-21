@@ -47,7 +47,5 @@ class PositionalIndex:
 
 
 if __name__ == '__main__':
-    # positionalIndex = PositionalIndex()
-    # positionalIndex.create('../data/main_data.json', '../data/dictionary.json')
-    pass
-
+    positionalIndex = PositionalIndex()
+    positionalIndex.create('../data/main_data.json', '../data/dictionary.json')
