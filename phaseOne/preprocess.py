@@ -1,12 +1,14 @@
 from phaseOne import setup
 import json
 import string
+from stopwordsiso import stopwords
 
 
 class Preprocess(setup.Setup):
     def __init__(self):
         super().__init__()
         self.__punctuations = ''.join(set(list(string.punctuation + '~`$^\,÷×.:،_-/٪%؛؟?!()[]«»…@#&*+=|<>')))
+        self.__stop_words = stopwords('fa')
 
     def __init_data(self, raw_data_url):
         print("loading data ...")
@@ -39,10 +41,10 @@ class Preprocess(setup.Setup):
                 if content[word_idx] not in self.__punctuations:
                     stemmed_word = self._stem(content[word_idx])
                     final_content.append(stemmed_word)
-                    if stemmed_word in self._dictionary.keys():
-                        self._dictionary[stemmed_word] += 1
-                    else:
-                        self._dictionary[stemmed_word] = 0
+                    # if stemmed_word in self._dictionary.keys():
+                    #     self._dictionary[stemmed_word] += 1
+                    # else:
+                    #     self._dictionary[stemmed_word] = 1
 
             self._data[idx]['content'] = final_content
 
@@ -50,10 +52,12 @@ class Preprocess(setup.Setup):
                 print('=', end='')
 
     def __delete_stopwords(self):
+
         for idx in range(len(self._data)):
             final_content = []
             for word_idx in range(len(self._data[idx]['content'])):
-                if self._dictionary[self._data[idx]['content'][word_idx]] <= 22368:
+                # if self._dictionary[self._data[idx]['content'][word_idx]] <= 22368:
+                if not(self._data[idx]['content'][word_idx] in self.__stop_words):
                     final_content.append(self._data[idx]['content'][word_idx])
 
             self._data[idx]['content'] = final_content
