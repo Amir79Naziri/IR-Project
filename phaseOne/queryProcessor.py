@@ -20,18 +20,18 @@ class QueryProcessor(setup.Setup):
 
         has_seen_quote = False
         has_seen_not = False
+        exact_seqs = []
         exact_words = []
-        exact_word = []
         match_words = []
         not_words = []
         for word in query:
 
             if has_seen_quote:
                 if word == '«' or word == '»':
-                    exact_words.append(exact_word)
-                    exact_word = []
+                    exact_seqs.append(exact_words)
+                    exact_words = []
                 else:
-                    exact_word.append(self._stem(word))
+                    exact_words.append(self._stem(word))
             else:
                 if has_seen_not:
                     has_seen_not = False
@@ -44,10 +44,45 @@ class QueryProcessor(setup.Setup):
                     else:
                         match_words.append(self._stem(word))
 
-        return match_words, not_words, exact_words
+        return match_words, not_words, exact_seqs
 
-    def __querySearch(self, match_words, not_words, exact_words):
+    def __positionalSearch(self, exact_words):
+        docsPosition = {}
+        docs = set()
+        threshold = len(exact_words)
+        for word in exact_words:
+            if word in self._dictionary:
+                if docsPosition:
+                    postings = self._dictionary[word]['postings']
+                    for doc_id in postings:
+                        if doc_id in docsPosition:
+                            prev_positions = docsPosition[doc_id]
+                            for pos1 in postings[doc_id]['positions']:
+                                for pos2_idx in range(len(prev_positions)):
+                                    if pos1 - prev_positions[pos2_idx][-1] == 1:
+                                        docsPosition[doc_id][pos2_idx].append(pos1)
+                                        if len(docsPosition[doc_id][pos2_idx]) == threshold:
+                                            docs.add(doc_id)
+                                        break
+
+                else:
+                    docsPosition = {}
+                    postings = self._dictionary[word]['postings']
+                    for doc_id in postings:
+                        docsPosition[doc_id] = [[pos] for pos in postings[doc_id]['positions']]
+            else:
+                return {}
+
+        return docs
+
+    def __querySearch(self, match_words, not_words, exact_seqs):
+        # not_docs = set(self._data.keys())
         docs = {}
+
+        # for word in not_words:
+        #     if word in self._dictionary:
+        #         for doc_id in self._dictionary[word]['postings']:
+        #             not_docs.remove(doc_id)
 
         for word in match_words:
             if word in self._dictionary:
@@ -63,8 +98,16 @@ class QueryProcessor(setup.Setup):
                     if doc in docs:
                         docs.pop(doc)
 
-        docs = sorted(docs, key=lambda x: docs[x], reverse=True)
-        return docs
+        exact_docs = set()
+        for exact_words in exact_seqs:
+            exact_docs.update(self.__positionalSearch(exact_words))
+
+        final_docs = []
+        for doc_id in sorted(docs, key=lambda x: docs[x], reverse=True):
+            if doc_id in exact_docs:
+                final_docs.append(doc_id)
+
+        return final_docs
 
     def __show_result(self, docs):
         for doc_id in docs:
@@ -73,11 +116,11 @@ class QueryProcessor(setup.Setup):
             print('URL: ', doc['url'])
             print('Content: ', doc['content'])
             print('-------------------------------------------------------------')
-            break
 
     def search(self, query):
-        match_words, not_words, exact_words = self.__queryPreprocessor(query)
-        docs = self.__querySearch(match_words, not_words, exact_words)
+        match_words, not_words, exact_seqs = self.__queryPreprocessor(query)
+        print(match_words, not_words, exact_seqs)
+        docs = self.__querySearch(match_words, not_words, exact_seqs)
         self.__show_result(docs)
 
 
@@ -96,9 +139,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # a = {'1': 8, '2': 12, '5': 3}
-    # b = {'2': 7, '1': 1}
-    # # for i in b:
-    # #     if i in a:
-    # #         a.pop(i)
-    # print(sorted(a, key=lambda x: a[x], reverse=True))
