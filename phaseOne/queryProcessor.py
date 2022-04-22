@@ -90,7 +90,8 @@ class QueryProcessor(setup.Setup):
         for word in not_words:
             if word in self._dictionary:
                 for doc_id in self._dictionary[word]['postings']:
-                    docs.pop(doc_id)
+                    if doc_id in docs:
+                        docs.pop(doc_id)
 
         for word in match_words:
             if word in self._dictionary:
@@ -102,9 +103,10 @@ class QueryProcessor(setup.Setup):
                             docs[doc_id]['match_words'][word] = \
                                 self._dictionary[word]['postings'][doc_id]['count']
 
-        for doc_id in docs.copy():
-            if len(docs[doc_id]['match_words']) == 0:
-                docs.pop(doc_id)
+        if match_words:
+            for doc_id in docs.copy():
+                if len(docs[doc_id]['match_words']) == 0:
+                    docs.pop(doc_id)
 
         for exact_words in exact_seqs:
             self.__positionalSearch(exact_words, docs)
@@ -155,7 +157,7 @@ class QueryProcessor(setup.Setup):
         items = 0
         for doc_id in docs:
             doc = self._data[doc_id]
-            # print('ID', doc_id)
+            print('ID', doc_id)
             print('Title: ', doc['title'])
             print('URL: ', doc['url'])
             # print('Content: ', doc['content'])
@@ -173,7 +175,7 @@ class QueryProcessor(setup.Setup):
 
 
 def main():
-    query_processor = QueryProcessor('../data/dictionary.json', '../data/main_data.json')
+    query_processor = QueryProcessor('../data/dictionary.json', '../data/IR_data_news_12k.json')
 
     while True:
         query = input('search: ')
