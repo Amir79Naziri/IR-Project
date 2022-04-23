@@ -174,8 +174,8 @@ class QueryProcessor(setup.Setup):
         self.__show_result(sorted_docs)
 
 
-def main():
-    query_processor = QueryProcessor('../data/dictionary.json', '../data/IR_data_news_12k.json')
+def main(dictionary_url, data_url):
+    query_processor = QueryProcessor(dictionary_url, data_url)
 
     while True:
         query = input('search: ')
@@ -186,4 +186,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main('../data/dictionary.json', '../data/IR_data_news_12k.json')
