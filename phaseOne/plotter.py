@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 import numpy as np
 import json
 
@@ -54,9 +55,70 @@ def zipf_plot(with_stopwords_dictionary_url, without_stopwords_dictionary_url):
     plt.show()
 
 
-def heap_plot():
-    pass
+def heap_plot(dictionary_urls, main_dictionary, title):
+
+    def numberOfTokens(dictionary):
+        tokens = 0
+        for k in dictionary:
+            tokens += int(dictionary[k]['count'])
+        return tokens
+
+    def vocabSize(dictionary):
+        return len(dictionary)
+
+    x = []
+    y = []
+
+    print("loading data ...")
+    for key in dictionary_urls:
+        with open(dictionary_urls[key], 'r') as f:
+            d = json.load(f)
+            x.append(numberOfTokens(d))
+            y.append(vocabSize(d))
+
+    with open(main_dictionary, 'r') as f:
+        d = json.load(f)
+        main_tokens = numberOfTokens(d)
+        main_vocabSize = vocabSize(d)
+
+    x = np.log10(np.array(x))
+    y = np.log10(np.array(y))
+
+    print('fitting ...')
+
+    def heapLaw(T, b, k):
+        return b * T + np.log10(k)
+
+    params, _ = curve_fit(heapLaw, x, y)
+
+    print('plotting ...')
+
+    plt.plot(x, y, label='real')
+    plt.plot(x, heapLaw(x, *params), label='estimated')
+    plt.xlabel('log10 T')
+    plt.ylabel('log10 M')
+    plt.suptitle(title)
+    plt.title('b = {:.4} , k = {:.4}'.format(*params))
+    plt.legend()
+    plt.show()
+
+    print('real dictionary size:', main_vocabSize)
+    print('estimated dictionary size:', int(10 ** heapLaw(np.log10(main_tokens), *params)))
+
 
 
 if __name__ == '__main__':
-    zipf_plot('../data/dictionary_with_stopwords.json', '../data/dictionary.json')
+    # zipf_plot('../data/dictionary_with_stopwords.json', '../data/dictionary.json')
+
+    no_stemmed = {'500': '../data/dictionary_500_no_stemmed.json',
+                  '1000': '../data/dictionary_1000_no_stemmed.json',
+                  '1500': '../data/dictionary_1500_no_stemmed.json',
+                  '2000': '../data/dictionary_2000_no_stemmed.json'}
+
+    stemmed = {'500': '../data/dictionary_500_stemmed.json',
+               '1000': '../data/dictionary_1000_stemmed.json',
+               '1500': '../data/dictionary_1500_stemmed.json',
+               '2000': '../data/dictionary_2000_stemmed.json'}
+
+    heap_plot(stemmed, '../data/dictionary.json', 'stemmed')
+    # heap_plot(no_stemmed, '../data/dictionary_no_stemmed.json', 'without stem')
