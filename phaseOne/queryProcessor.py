@@ -1,6 +1,6 @@
 from phaseOne import setup
 import json
-from math import log2
+from math import log2, log10, sqrt
 
 
 class QueryProcessor(setup.Setup):
@@ -153,7 +153,38 @@ class QueryProcessor(setup.Setup):
         # print(docs)
         return sorted(docs, key=lambda x: docs[x]['rank'], reverse=True)
 
-    def __show_result(self, docs):
+    def __cosine_score(self, match_words):
+        repeat_per_word = {}
+        for term in match_words:
+            if term in repeat_per_word:
+                repeat_per_word[term] += 1
+            else:
+                repeat_per_word[term] = 1
+        # print(repeat_per_word)
+        score = {}
+        length = {}
+        for term in match_words:
+            if term in self._dictionary:
+                w_tq = 1 + log10(repeat_per_word[term])
+                for doc_per_term in self._dictionary[term]['postings']:
+                    w_td = self._dictionary[term]['postings'][doc_per_term]['tf_idf']
+                    if doc_per_term in score:
+                        score[doc_per_term] += w_td * w_tq
+                    else:
+                        score[doc_per_term] = w_td * w_tq
+
+                    if doc_per_term in length:
+                        length[doc_per_term] += w_td ** 2
+                    else:
+                        length[doc_per_term] = w_td ** 2
+
+        for doc in score:
+            score[doc] = score[doc] / sqrt(length[doc])
+
+
+        return sorted(length, key=lambda x: length[x], reverse=True)
+
+    def __show_result(self, docs, limit=5):
         items = 0
         for doc_id in docs:
             doc = self._data[doc_id]
@@ -163,14 +194,17 @@ class QueryProcessor(setup.Setup):
             # print('Content: ', doc['content'])
             print()
             items += 1
-            if items == 5:
+            if items == limit:
                 break
 
-    def search(self, query):
+    def search(self, query, tf_idf=False):
         match_words, not_words, exact_seqs = self.__queryPreprocessor(query)
         # print(match_words, not_words, exact_seqs)
-        docs = self.__querySearch(match_words, not_words, exact_seqs)
-        sorted_docs = self.__rank(docs, match_words, exact_seqs)
+        if tf_idf:
+            sorted_docs = self.__cosine_score(match_words)
+        else:
+            docs = self.__querySearch(match_words, not_words, exact_seqs)
+            sorted_docs = self.__rank(docs, match_words, exact_seqs)
         self.__show_result(sorted_docs)
 
 
@@ -182,8 +216,8 @@ def main(dictionary_url, data_url):
         if query == '<off>':
             break
         else:
-            query_processor.search(query)
+            query_processor.search(query, True)
 
 
 if __name__ == '__main__':
-    main('../data/dictionary.json', '../data/IR_data_news_12k.json')
+    main('../data/dictionary_tf_idf.json', '../data/IR_data_news_12k.json')
