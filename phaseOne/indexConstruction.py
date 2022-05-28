@@ -1,4 +1,5 @@
 import json
+from math import log10
 
 
 class PositionalIndex:
@@ -35,17 +36,36 @@ class PositionalIndex:
 
         self.__dictionary = dict(sorted(self.__dictionary.items()))
 
+    def __tf_idf_calculator(self):
+        print("tf_idf calculation ...")
+        print('|', end='')
+        N = len(self.__data)
+        idx = 0
+        for term in self.__dictionary:
+            nt = len(self.__dictionary[term]["postings"])
+            for doc_per_term in self.__dictionary[term]["postings"]:
+                tf = self.__dictionary[term]["postings"][doc_per_term]["count"]
+                self.__dictionary[term]["postings"][doc_per_term]["tf_idf"] = \
+                    (1 + log10(tf)) * log10(N / nt)
+
+            if idx % 1000 == 0:
+                print('=', end='')
+            idx += 1
+        print('|')
+
     def __save_dictionary(self, new_dictionary_url):
         print('saving dictionary ...')
         with open(new_dictionary_url, 'w') as f:
             f.write(json.dumps(self.__dictionary))
 
-    def create(self, data_url, new_dictionary_url):
+    def create(self, data_url, new_dictionary_url, tf_idf=False):
         self.__load_data(data_url)
         self.__dictionary_construction()
+        if tf_idf:
+            self.__tf_idf_calculator()
         self.__save_dictionary(new_dictionary_url)
 
 
 if __name__ == '__main__':
     positionalIndex = PositionalIndex()
-    positionalIndex.create('../data/main_data.json', '../data/dictionary.json')
+    positionalIndex.create('../data/main_data.json', '../data/dictionary_tf_idf.json', tf_idf=True)
