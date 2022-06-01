@@ -1,6 +1,6 @@
 from phaseOne import setup
 import json
-from math import log2, log10, sqrt
+from math import log2, log10, sqrt, pow
 
 
 class QueryProcessor(setup.Setup):
@@ -174,15 +174,14 @@ class QueryProcessor(setup.Setup):
                         score[doc_per_term] = w_td * w_tq
 
                     if doc_per_term in length:
-                        length[doc_per_term] += w_td ** 2
+                        length[doc_per_term] += pow(w_td, 2)
                     else:
-                        length[doc_per_term] = w_td ** 2
+                        length[doc_per_term] = pow(w_td, 2)
 
         for doc in score:
             score[doc] = score[doc] / sqrt(length[doc])
 
-
-        return sorted(length, key=lambda x: length[x], reverse=True)
+        return sorted(score, key=lambda x: score[x], reverse=True)
 
     def __show_result(self, docs, limit=5):
         items = 0
