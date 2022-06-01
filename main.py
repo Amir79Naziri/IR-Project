@@ -1,6 +1,6 @@
-from phaseOne.preprocess import Preprocess
-from phaseOne.indexConstruction import PositionalIndex
-from phaseOne.queryProcessor import main
+from SearchEngine.preprocess import Preprocess
+from SearchEngine.indexConstruction import PositionalIndex
+from SearchEngine.queryProcessor import main
 
 if __name__ == '__main__':
     preprocessor = Preprocess()
