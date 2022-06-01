@@ -53,6 +53,21 @@ class PositionalIndex:
             idx += 1
         print('|')
 
+    def __champion_list_construction(self, number_of_best_docs):
+        print("champion list calculation ...")
+        print('|', end='')
+        idx = 0
+        for term in self.__dictionary:
+            self.__dictionary[term]['champion_list'] = \
+                sorted(self.__dictionary[term]['postings'],
+                       key=lambda x: self.__dictionary[term]['postings'][x]['tf_idf'],
+                       reverse=True)[:number_of_best_docs]
+
+            if idx % 1000 == 0:
+                print('=', end='')
+            idx += 1
+        print('|')
+
     def __save_dictionary(self, new_dictionary_url):
         print('saving dictionary ...')
         with open(new_dictionary_url, 'w') as f:
@@ -63,9 +78,10 @@ class PositionalIndex:
         self.__dictionary_construction()
         if tf_idf:
             self.__tf_idf_calculator()
+            self.__champion_list_construction(20)
         self.__save_dictionary(new_dictionary_url)
 
 
 if __name__ == '__main__':
     positionalIndex = PositionalIndex()
-    positionalIndex.create('../data/main_data.json', '../data/dictionary_tf_idf.json', tf_idf=True)
+    positionalIndex.create('../data/main_data.json', '../data/dictionary_tf_idf_champion.json', tf_idf=True)
