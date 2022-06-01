@@ -166,17 +166,17 @@ class QueryProcessor(setup.Setup):
         for term in match_words:
             if term in self._dictionary:
                 w_tq = 1 + log10(repeat_per_word[term])
-                for doc_per_term in self._dictionary[term]['postings']:
-                    w_td = self._dictionary[term]['postings'][doc_per_term]['tf_idf']
+                for doc_per_term in self._dictionary[term]['champion_list']:
+                    w_td = self._dictionary[term]['postings'][str(doc_per_term)]['tf_idf']
                     if doc_per_term in score:
-                        score[doc_per_term] += w_td * w_tq
+                        score[str(doc_per_term)] += w_td * w_tq
                     else:
-                        score[doc_per_term] = w_td * w_tq
+                        score[str(doc_per_term)] = w_td * w_tq
 
                     if doc_per_term in length:
-                        length[doc_per_term] += pow(w_td, 2)
+                        length[str(doc_per_term)] += pow(w_td, 2)
                     else:
-                        length[doc_per_term] = pow(w_td, 2)
+                        length[str(doc_per_term)] = pow(w_td, 2)
 
         for doc in score:
             score[doc] = score[doc] / sqrt(length[doc])
@@ -219,4 +219,4 @@ def main(dictionary_url, data_url):
 
 
 if __name__ == '__main__':
-    main('../data/dictionary_tf_idf.json', '../data/IR_data_news_12k.json')
+    main('../data/dictionary_tf_idf_champion.json', '../data/IR_data_news_12k.json')
